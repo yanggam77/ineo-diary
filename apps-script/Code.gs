@@ -1,10 +1,11 @@
 /**
  * 『별일 없는 날에 일기 쓰기』 설문 · 서평단 신청 웹앱
- * - 이 스크립트는 응답을 받을 '구글 시트'에 연결(확장 프로그램 > Apps Script)해서 씁니다.
+ * - SHEET_ID의 구글 시트에 응답을 저장합니다. (시트의 확장 프로그램 > Apps Script 또는 script.new 어디에 붙여도 동작)
  * - Index.html 파일과 함께 배포하면, 배포 URL 하나로 설문 페이지가 열리고 응답이 시트에 쌓입니다.
  */
 
-var SHEET_NAME = '응답';
+// 응답을 저장할 구글 시트 ID (드라이브: 별일 없는 날에 일기 쓰기 — 설문·서평단 응답)
+var SHEET_ID = '1wKNEQ5H87WAVwuUa48UQXPLtntXg0PV4vjOuDHhi6WU';
 var HEADERS = [
   '제출 시각', '학년', '일기 쓰는 빈도', '좋아하는 일기', '재미/어려움',
   '재미있는 이유', '어려운 이유', '직접 쓴 이유',
@@ -63,15 +64,22 @@ function save_(d) {
 }
 
 function getSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET_NAME);
-    sh.appendRow(HEADERS);
+  var ss = SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheets()[0];
+  if (sh.getLastRow() === 0 || String(sh.getRange(1, 1).getValue()) !== HEADERS[0]) {
+    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  }
+  if (sh.getFrozenRows() < 1) {
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#FBD3D4');
   }
   return sh;
+}
+
+// 배포 전에 한 번 실행해서 권한 승인 + 시트 연결 확인용
+function testSetup() {
+  var sh = getSheet_();
+  Logger.log('연결 OK: ' + sh.getParent().getName() + ' / ' + sh.getName());
 }
 
 // 수식 주입 방지 + 길이 제한
